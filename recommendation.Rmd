@@ -184,6 +184,7 @@ isbn13                    | 585
 original_publication_year | 21  
 
 There are only missing vaules in books_df. The missing valuse are isbn(International Standard Book Number) and original_publication_year. These two variables will not be variables for recommender system. Therefore, we will not deal thse missing values. We are confident to say this dataset has good quality of data.
+There are only missing vaules in books_df. The missing values are isbn(International Standard Book Number) and original_publication_year. These two variables will not be variables used in a recommender system. Therefore, we will not deal these missing values. We can be confident is saying that this dataset contains good quality data.
 
 ##Part 2: Data Preparation
 
