@@ -191,10 +191,14 @@ There are only missing vaules in books_df. The missing values are isbn(Internati
 ### Clean data
 
 Before we use the books dataset, we will do some data clean to remove unuseful values. In this way, it will make the dataset smaller and make computation faster.
+Before we use the books dataset, we will need to do some data cleansing to remove unuseful values. In this way, it will make the dataset smaller and make computation faster.
 
   *	This data frame contains 585 missing value in variable "isbn13". We have variable "isbn", we assume these two variables are same, hence, we will remove variable"isbn13"from the data frame. 
   *On this data set, it als contains a variable called: best_book_id. This id number is same as variable: goodreads_book_id. We will keep goodreads_book_id as this variable is also corresponding in book_tags_df dataset, but will remove best_book_id variable.
   * work_id on this data set will be removed as we have book_id and goodreads_book_id to indicate a unique book.
+  *	This data set contains 585 missing values under variable 'isbn13'. We have variable 'isbn', we assume these two variables are the same, hence, we will remove variable 'isbn13' from the data frame. 
+  * This data set contains variable 'best_book_id'. This id number is identical to variable 'goodreads_book_id'. Becasue variable 'goodreads_book_id' is cross referenced in the 'book_tags_df' dataset it will remain while the 'best_book_id' variable is removed.
+  * This data set contains variable 'work_id'. This variable will be removed as book_id and goodreads_book_id already serve to identify a unique book.
 
 ```{r}
 #check if there are dupicatie elements in datasets
