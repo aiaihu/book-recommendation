@@ -34,12 +34,17 @@ To run the basic working example that produced this blog post:
 The objective for this project is to builde a book recommender system which could suggest books to users based on similarities between books.In other words, it would recommend books that are similar to ones that a user already likes. It would look into similar books from the same genre(perhaps fantasy, science fiction, romance, thriller, mystery etc.). It can even make recommendation based on any variety of common elements such as from the same author.
 
 ## Introduction
-
-
+With techlogy rapidly update every day, online shopping, social media, YouTube and Netflix and many other websites are becoming  hoter and hoter every day. When you shopping on Amazon, you properly noted there were some products recommendation below the products which you have just bought.Have you ever bought anything from their recommended products? Did the recommended product ratings affect your buying decision? How did the recommend this product to you? Instead of discuss recommendation for shopping items online, we will discuss  recommendation system for books
+in this report.
 
 ## Business Objective
 The objective for this project is to builde a book recommender system which could suggest books to users based on similarities between books
 
+### Research Questions:
+
+* Q1: Does book's rating affect book's popularity?
+* Q2: How to predict user's rating or preferences for a given book?
+* Q3: How variables provide a predictive estimate of the likely ?
 
 
 ## Part 1: Data Understanding
@@ -55,7 +60,7 @@ Downloaded dataset and saved in local computer.
 We assume the dataset come from a site similar to goodreads.com but with more permissive terms of use.
 Use below R code to read CSV files from local computer
 
-```{r}
+```{r results='hide', message=FALSE, warning=FALSE}
 #start by loading some libraries
 library(recommenderlab)
 library(data.table)
@@ -85,6 +90,9 @@ tags = read.csv("tags.csv", header = TRUE)
 to_read = read.csv("to_read.csv", header =TRUE)
 
 ```
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
 
 ### Data Summary
 
@@ -105,7 +113,7 @@ str(to_read)
 Contains 912705 observations(rows) and 2 variables(columns). This data set contains user_id and book_id.
 
 
-#### Ratings.csv
+#### ratings.csv
 Contains 5976479 observations(rows) and 3 variables(columns). This data set includes all users's ratings of the 10,000 books.
 
 ```{r, result='asis', echo=FALSE}
@@ -117,7 +125,7 @@ datatable(head(ratings, 10), class = "nowrap hover row-border", options = list(d
 glimpse(ratings)
 ```
 
-#### Books.csv
+#### books.csv
 Contains 10000 observations(rows) and 23 variables(columns). This data set contains more information on the books such as author, original_publcation_year, rating,book_id etc.
 
 ```{r, result='asis', echo=FALSE}
@@ -128,7 +136,7 @@ datatable(head(books,5),  class = "nowrap hover row-border", options = list(dom 
 glimpse(books)
 ```
 
-#### Book_tags.csv
+#### book_tags.csv
 Contains 999912 observations(rows) and 3 variables(columns). This data set has all tag_ids users have assigned to that books and corresponding tag_counts.
 
 ```{r, result='asis', echo=FALSE}
@@ -140,7 +148,7 @@ datatable(head(book_tags, 10), class = "nowrap hover row-border", options = list
 glimpse(book_tags)
 ```
 
-#### Tags.csv
+#### tags.csv
 Contains 34252 observations(rows) and 2 variables(columns). This data set includes the tag_names corresponding to the tag_ids
 
 ```{r, result='asis', echo=FALSE}
@@ -156,7 +164,7 @@ glimpse(tags)
 
 To prepare quality dataset for the machine learning, we will need to check our dataset for any duplicated elements, missing values.
 
-### Duplicated elements
+### Step 1: Duplicated elements
 We will check if there are duplicated elements in ratings dataset and books dataset. Some users may rating same book for twice. If this is a case, we will then remove the duplicated rows. Also, we will make sure there are not duplicated books in the books dataset. To do this, we will use dplyr. We found there are no duplicated rows in books and book_tags datasets.
 ```{r}
 #loading library for identifying duplicated rows.
@@ -173,7 +181,7 @@ books <- books %>%
                 distinct(book_id, .keep_all = TRUE)
 ```
 
-### Missing Values
+### Step 2: Missing Values
 
 Using code: colSums(is.na()) to get below display. This tells which variable has how many missing values in this data set.
 
@@ -211,7 +219,7 @@ Data set  |Variable name             | Missing/NA Values
           |                          |
 There are only missing vaules in books_df. The missing values are isbn(International Standard Book Number) and original_publication_year. These two variables will not be variables used in a recommender system. Therefore, we will not deal these missing values. We can be confident is saying that this dataset contains good quality data.
 
-### Clean data
+### Step 3:Clean data
 
 Before we use the dataset, we will do some data clean to remove unuseful values. In this way, it will make the dataset smaller and make computation faster.
 
@@ -244,6 +252,8 @@ ratings %>%
   geom_bar(color = "grey10") + scale_fill_brewer(palette = "Dark2") + guides(fill = FALSE)
 
 ```
+
+
 #### Number of ratings per book
 We want to check the distribution of the number of ratings for each book. Most of books has total of ratings below 1000.
 
@@ -354,6 +364,8 @@ P_non_english <- books %>%
 grid.arrange(p_english,P_non_english, ncol=2)
 
 ```
+
+
 ####Authors
 We see from below plot, there are a few authors with lower rating below 3,which may indicate that rating is high or low not related to authors.
 ```{r}
@@ -362,7 +374,10 @@ books %>%
   summarize(mean_per_authors_rating = mean(average_rating)) %>% 
   ggplot(aes(mean_per_authors_rating)) +
   geom_histogram(fill = "red", color = "grey20", bins =30)
+
 ```
+
+
 However,we saw number of authors is a matter of the rating from below plot.The more authors a book has the higher average rating is. 
 
 ```{r}
@@ -407,9 +422,13 @@ library(dplyr)
   top_n(10,wt = average_rating) %>% 
   select(title, ratings_count, average_rating, authors) %>% 
   datatable(class = "nowrap hover row-border", escape = FALSE, options = list(dom = 't',scrollX = TRUE, autoWidth = TRUE))
+
 ```
+
+
 #### Top 10 books in ratings_count  
 We rank the top 10 books according to their ratings_count. We saw some books on the list but their average_rating is less than mean of average_rating. This tells us a book is popular to be rated, but it doesn't mean that this book has higher average_rating.
+
 
 ```{r}
 #use arrange()to sort variable ratings_count, then get the top 10 books with title, ratings_count, average_rating and authors
@@ -423,8 +442,6 @@ We rank the top 10 books according to their ratings_count. We saw some books on 
 # mean of average_rating
 mean(books$average_rating)
 ```
-
-
 
 ### Correlation Matrix
 
@@ -447,7 +464,110 @@ books_subset <- books %>%
 corrplot(cor(books_subset,use = 'pairwise.complete.obs'), type = "upper", order = "hclust")
         
 ```
+
+
 ###Conclusion
 We have explored ratings dataset and books dataset and identified some variables that affect on book ratings, this will help us to recommend a book. However,these dataset does not include many other aspects such as user's age group, income, education, culture backgroud etc. We are unclear how these aspects influnce on the book ratings.
 
 
+## Part 4: Build Model -Collaborative Filtering
+A recommendation system is a type of information filter, which can learn users’ interests and hobbies according to their profile or historical behaviors, and then predict their ratings or preferences for a given item. It changes the way businesses communicate with users and strengthens the interactivity between them.
+
+There are two types of filtering systems that we have used for the prediction.
+
+**User-based collaborative filtering systems**: A user-based recommendation engine recommends products such as movies or online shopping items based on what other users with similar profiles have watched/liked or bought in the past. 
+
+
+**Item-based collaborative filtering systems**: An item-based recommender would make recommendations based on similarities bewtween products. It would recommend the products that are similar to ones that you already like. For example, if a user readed  "Little Women" and liked it so this user given it rating 5 stars. A item-based collaborative filtering system would then look into similar books from the same genre(perhaps romance,true love, womenhood or based on similar storyline) and then recommend to the user similar books based on the preference the user indicated when he/she gave "Little Women" rating. An item-based collaborative filtering system can also make recommendations based on any other variety of common elements such as from the same author.
+
+
+When we do the recommendation for a book, we are not just only lookig at the quantity of read/viewed, we have considered the rating that each of the users gave the book. This will help us to identify books that similiar users
+have liked, then filter our book recommendations accordingly. With saying this, the recommendation will only include the books with rated high by other similar users.
+
+### Split Dataset
+We need to structure our data like this: each row corresponds to a user and each column corresponds to a book. To restructure our dataset, we first to split the dataset into train and test dataset.
+train =60% of dataset
+test =40% of dataset
+
+```{r}
+library(caTools)
+```
+
+```{r}
+#To set a seed number
+set.seed(1)
+
+#Split dataset. 0.6 indicates 60% training and 40% test data.
+spl<-sample.split(ratings,SplitRatio = 0.6)
+
+```
+```{r}
+#spl
+train=subset(ratings,spl=="FALSE")
+test=subset(ratings,spl=="TRUE")
+
+```
+To restructure our train dataset by create a ratings matrix with rows as users and columns as books
+```{r}
+
+#Create ratings matrix with rows as users and columns as books.
+install.packages("reshape2", dependencies=TRUE)
+install.packages("stringi", dependencies=TRUE)
+library(stringi)
+library(reshape2)
+```
+
+```{r}
+#creat a dimension_names list based on the train dataset
+dimension_names = list(user_id =sort(unique(train$user_id)), book_id=sort(unique(train$book_id)))
+```
+
+```{r}
+#import some libraries
+library(dplyr)
+library(tidyverse)
+
+```
+
+```{r}
+#Spread a key-value pair across multiple columns.
+ratingmat <- spread(select(train, book_id, user_id, rating), book_id, rating) %>%
+  select(-user_id)
+    
+```
+```{r}
+#Create train matrix with rows as user_id and columns as book_id
+
+ratingmat = as.matrix(ratingmat)
+```
+
+```{r}
+# check the class ratingmat
+class(ratingmat)
+
+```
+
+```{r}
+#set the dimnames of matrix
+dimnames(ratingmat)<-dimension_names
+ratingmat[1:5, 1:5]
+```
+
+
+```{r}
+#Convert ratings matrix to real rating matrx which makes it dense
+library(recommenderlab)
+ratingmat = as(ratingmat,"realRatingMatrix")
+
+```
+By running above code, we reduced the size of ratingmat file to 49.5mb
+
+
+### Normalize the matrix
+```{r}
+ratingmat_n =normalize(ratingmat)
+
+
+```
+Above codes are as of May 21 at 5:50.
+changes made a lot after yesterday push which include re-wirte words and part 4
