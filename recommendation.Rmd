@@ -258,9 +258,6 @@ ratings %>%
   
 ```
 
-
-
-
 ####Number of ratings per user
 People are pretty active for the ratings. Most of people have number of rating between 75 - 150 times.
 ```{r}
@@ -296,6 +293,22 @@ ratings %>%
   ggplot(aes(mean_per_user_rating)) +
   geom_histogram(fill = "red", color = "grey20", bins =30)
 ```
+
+####Does rater relate to rating?
+From below plot, we see a possiblity of rating differently between frequent users and less frequent users.
+
+```{r}
+ratings %>%
+  group_by(user_id) %>%
+  summarize(mean_rating =mean(rating), number_of_rated_books =n())%>%
+  ggplot(aes(number_of_rated_books, mean_rating))+stat_bin_hex(bins =50) +scale_fill_distiller(palette ="Spectral")+
+  stat_smooth(method = "lm", color = "orchid", size = 2)+
+  scale_color_gradient()+
+  theme_bw()
+
+```
+
+
 ### Data Exploration:books dataset
 
 The books dataset contains 21 variables after our data cleaning. We will explore some variables in this dataset to see how they are related to the ratings.
@@ -342,7 +355,7 @@ grid.arrange(p_english,P_non_english, ncol=2)
 
 ```
 ####Authors
-We see from below plot, there are a few authors with lower rating below 3,which may indicate that rating is high or low not related to author.
+We see from below plot, there are a few authors with lower rating below 3,which may indicate that rating is high or low not related to authors.
 ```{r}
 books %>% 
   group_by(authors, average_rating) %>% 
@@ -350,6 +363,36 @@ books %>%
   ggplot(aes(mean_per_authors_rating)) +
   geom_histogram(fill = "red", color = "grey20", bins =30)
 ```
+However,we saw number of authors is a matter of the rating from below plot.The more authors a book has the higher average rating is. 
+
+```{r}
+books_author <- books %>% 
+  group_by(book_id) %>% 
+  mutate(number_of_authors = length(str_split(authors, ",")[[1]]))
+
+books_author %>% filter(number_of_authors <= 10) %>% 
+  ggplot(aes(number_of_authors, average_rating)) + stat_bin_hex(bins = 50) + scale_fill_distiller(palette = "Spectral") +
+  stat_smooth(method = "lm", size = 2, color = "orchid", se = FALSE)+
+  scale_color_gradient()+
+  theme_bw()
+
+```
+
+
+#### Does average_rating relate to ratings_count?
+From below plot, we see there are only in a small extent, average_rating is higher and number of ratings_count is higher.
+
+```{r}
+ggplot(books,aes(x=ratings_count, y=average_rating))+
+  geom_point(aes(color = books_count)) +
+  stat_smooth(method = "lm", color = "orchid", size = 2)+
+  scale_color_gradient()+
+  theme_bw()
+  
+       
+```
+
+
 #### Top 10 books in average_rating  
 We rank the top 10 rated books according to their average_rating. The Complete Calvin and Hobbes has the highest average_rating at 4.82, it's so close to 5. With 28900 ratings_count, we see almose every one gives this book high rating.  
 ```{r}
@@ -380,3 +423,31 @@ We rank the top 10 books according to their ratings_count. We saw some books on 
 # mean of average_rating
 mean(books$average_rating)
 ```
+
+
+
+### Correlation Matrix
+
+A correlation matrix is a table showing correlation coefficients between variables. The books contains many variables. Some of variables may not have correlation or weak correlation with other variables. Use corrplot() function to see Visualization of Correlation Matrix.
+
+We see some correlations from below correlation martrix plot.
+
+* Variable ratings_count has positive 1 correlation with variable work_ratings_count. Does this mean that they are same vaules but just called different variable name? We are not sure about this as the discrepation about the dataset did not specify it.
+
+* Variable work_text_reviews_count has positive 0.8 correlation with ratings_count and work_ratings_count.
+
+* Variable books_count has positive correlation with variable work_text_reviews_count, ratings_count and work_ratings_count; this variable also has strong negative correlation with variable original_publication_year, this does make sense as the original_publication_year increases, the books_count decreases. Variable books_count also has negative correlation with average_rating, but not strong, is just about -0.1.
+
+
+```{r}
+#correlation matrix, select variables with numeric vaules
+books_subset <- books %>% 
+  select(one_of(c("books_count","original_publication_year","ratings_count", "work_ratings_count", "work_text_reviews_count", "average_rating"))) %>% 
+  as.matrix()
+corrplot(cor(books_subset,use = 'pairwise.complete.obs'), type = "upper", order = "hclust")
+        
+```
+###Conclusion
+We have explored ratings dataset and books dataset and identified some variables that affect on book ratings, this will help us to recommend a book. However,these dataset does not include many other aspects such as user's age group, income, education, culture backgroud etc. We are unclear how these aspects influnce on the book ratings.
+
+
