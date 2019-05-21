@@ -3,7 +3,7 @@
 Title: "Book Recommendation"
 Course ID: "CSDA1040"
 Professor: "Mr. Hashmat"
-Author: "Group Project: Aimin Amy Hu, Jacob Geeves"
+Author: "Group Project: Aimin Amy Hu, Jacob Geeves, Eugene Park"
 Date: '2019-May-26'
 output:
   html_document: 
@@ -75,7 +75,7 @@ library(reshape2)
 ```
 ```{r}
 #set up working directory
-setwd("~/York U School/CSDA1040/Project_1/Datasets")
+setwd("~/York U School/CSDA1040/book-recommendation/Datasets")
 
 # Read 5 CSV files along with header
 books=read.csv("books.csv",header = TRUE)
@@ -86,7 +86,7 @@ to_read = read.csv("to_read.csv", header =TRUE)
 
 ```
 
-## Data Summary
+### Data Summary
 
 This dataset contains 5 CSV files:book_tags.csv, books.csv, ratings.csv, tags.csv, to_read.csv. We used R read.csv command to read all csv files into data frame.
 ```{r, eval=FALSE,echo=FALSE}
@@ -100,55 +100,82 @@ str(to_read)
 
 ```
 
-######books:
-Contains 10000 observations(rows) and 23 variables(columns). This data set contains more information on the books such as author, original_publcation_year, rating,book_id etc.
-
-######book_tags:
-Contains 999912 observations(rows) and 3 variables(columns). This data set has all tag_ids users have assigned to that books and corresponding tag_counts.
-
-######rating:
-Contains 5976479 observations(rows) and 3 variables(columns). This data set includes all users's ratings of the books.
-
-######tags:
-Contains 34252 observations(rows) and 2 variables(columns). This data set includes the tag_names corresponding to the tag_ids
 
 ######to_read:
 Contains 912705 observations(rows) and 2 variables(columns). This data set contains user_id and book_id.
 
-###Use head()command to show first 6 rows of each data frame
 
+#### Ratings.csv
+Contains 5976479 observations(rows) and 3 variables(columns). This data set includes all users's ratings of the 10,000 books.
+
+```{r, result='asis', echo=FALSE}
+datatable(head(ratings, 10), class = "nowrap hover row-border", options = list(dom = 't',scrollX = FALSE, autoWidth = TRUE))
+```
+
+<br>
 ```{r, echo=FALSE}
-
-#show first 6 rows of book_tags_df
-head(book_tags)
-
+glimpse(ratings)
 ```
+
+#### Books.csv
+Contains 10000 observations(rows) and 23 variables(columns). This data set contains more information on the books such as author, original_publcation_year, rating,book_id etc.
+
+```{r, result='asis', echo=FALSE}
+datatable(head(books,5),  class = "nowrap hover row-border", options = list(dom = 't',scrollX = TRUE, autoWidth=TRUE, columnDefs = list(list(width = '100px', targets = c(6)),list(width = '100px', targets = c(5,6)))))
+```
+<br>
 ```{r, echo=FALSE}
-#show first 6 rows of books_df
-head(books)
-
+glimpse(books)
 ```
-```{r,echo=FALSE}
-#show first 6 rows of ratings_df
-head(ratings)
 
+#### Book_tags.csv
+Contains 999912 observations(rows) and 3 variables(columns). This data set has all tag_ids users have assigned to that books and corresponding tag_counts.
+
+```{r, result='asis', echo=FALSE}
+datatable(head(book_tags, 10), class = "nowrap hover row-border", options = list(dom = 't',scrollX = FALSE, autoWidth = TRUE))
 ```
+
+<br>
 ```{r, echo=FALSE}
-#show first 6 rows of tags_df
-head(tags)
-
+glimpse(book_tags)
 ```
+
+#### Tags.csv
+Contains 34252 observations(rows) and 2 variables(columns). This data set includes the tag_names corresponding to the tag_ids
+
+```{r, result='asis', echo=FALSE}
+datatable(sample_n(tags, 5), class = "nowrap hover row-border", options = list(dom = 't',scrollX = FALSE, autoWidth = TRUE))
+```
+
+<br>
 ```{r, echo=FALSE}
-#show first 6 rows of to_read_df
-head(to_read)
+glimpse(tags)
 ```
 
+## Part 2: Data Prepartion
 
-## Data Exploration
+To prepare quality dataset for the machine learning, we will need to check our dataset for any duplicated elements, missing values.
+
+### Duplicated elements
+We will check if there are duplicated elements in ratings dataset and books dataset. Some users may rating same book for twice. If this is a case, we will then remove the duplicated rows. Also, we will make sure there are not duplicated books in the books dataset. To do this, we will use dplyr. We found there are no duplicated rows in books and book_tags datasets.
+```{r}
+#loading library for identifying duplicated rows.
+library(dplyr)
+```
+```{r}
+#checking if there are duplicated rows
+
+ratings <- ratings %>%
+              distinct(user_id, book_id, .keep_all = TRUE)
+```
+```{r}
+books <- books %>%
+                distinct(book_id, .keep_all = TRUE)
+```
 
 ### Missing Values
 
-Using code: colSums(is.na()) to get below display. This tells which variable has how many missing values in this data frame.
+Using code: colSums(is.na()) to get below display. This tells which variable has how many missing values in this data set.
 
 
 ```{r}
@@ -175,87 +202,181 @@ colSums(is.na(to_read))
 
 
 ```
-In summary of above table, the missing values are summarized as below list:
+In summary of above results, the missing values are summarized as below list:
 
-
-Variable name             | Missing/NA Values           
-------------------------- | ------------------
-isbn13                    | 585                       
-original_publication_year | 21  
-
-There are only missing vaules in books_df. The missing valuse are isbn(International Standard Book Number) and original_publication_year. These two variables will not be variables for recommender system. Therefore, we will not deal thse missing values. We are confident to say this dataset has good quality of data.
+Data set  |Variable name             | Missing/NA Values           
+----------|--------------------------|-------------------
+  books   | isbn13                   | 585                       
+  books   | original_publication_year| 21  
+          |                          |
 There are only missing vaules in books_df. The missing values are isbn(International Standard Book Number) and original_publication_year. These two variables will not be variables used in a recommender system. Therefore, we will not deal these missing values. We can be confident is saying that this dataset contains good quality data.
-
-##Part 2: Data Preparation
 
 ### Clean data
 
-Before we use the books dataset, we will do some data clean to remove unuseful values. In this way, it will make the dataset smaller and make computation faster.
-Before we use the books dataset, we will need to do some data cleansing to remove unuseful values. In this way, it will make the dataset smaller and make computation faster.
+Before we use the dataset, we will do some data clean to remove unuseful values. In this way, it will make the dataset smaller and make computation faster.
 
-  *	This data frame contains 585 missing value in variable "isbn13". We have variable "isbn", we assume these two variables are same, hence, we will remove variable"isbn13"from the data frame. 
-  *On this data set, it als contains a variable called: best_book_id. This id number is same as variable: goodreads_book_id. We will keep goodreads_book_id as this variable is also corresponding in book_tags_df dataset, but will remove best_book_id variable.
-  * work_id on this data set will be removed as we have book_id and goodreads_book_id to indicate a unique book.
-  *	This data set contains 585 missing values under variable 'isbn13'. We have variable 'isbn', we assume these two variables are the same, hence, we will remove variable 'isbn13' from the data frame. 
-  * This data set contains variable 'best_book_id'. This id number is identical to variable 'goodreads_book_id'. Becasue variable 'goodreads_book_id' is cross referenced in the 'book_tags_df' dataset it will remain while the 'best_book_id' variable is removed.
-  * This data set contains variable 'work_id'. This variable will be removed as book_id and goodreads_book_id already serve to identify a unique book.
+*	Remove variables: books dataset
+* This data set contains 585 missing values under variable 'isbn13'. We have variable 'isbn', we assume these two variables are the same, hence, we    will remove variable 'isbn13' from the data frame. 
+
+* This data set contains variable 'best_book_id'. This id number is identical to variable 'goodreads_book_id'. Becasue variable 'goodreads_book_id' is cross referenced in the 'book_tags_df' dataset it will remain while the 'best_book_id' variable is removed.
+
+* This data set contains variable 'work_id'. This variable will be removed as book_id and goodreads_book_id already serve to identify a unique book.
+
 
 ```{r}
-#check if there are dupicatie elements in datasets
-tags[duplicated(tags)]
+books_df <- select(books, -isbn13, -best_book_id)
 ```
-```{r}
+After removed two variables from this dataset, we are haveing 21 variables.
 
-#Create ratings matrix with rows as users and columns as books. 
-ratingmat = dcast(ratings, user_id~book_id, value.var = "rating", na.rm=FALSE)
-```
-```{r}
-# check the class ratingmat
-class(ratingmat)
+##Part 3: Data Exploration
 
-```
-```{r}
-# remove user_id as we don't need it
-ratingmat = as.matrix(ratingmat[,-1])
-```
+### Data Exploration:ratings dataset
+As we know that the ratings dataset contains user_id, book_id and rating. We use ggplot() and geom()to get visulaztion between these variables.
+
+#### Distribution of ratings
+We check distribution of ratings and found:
+The most of ratings are between 3-5 and less than 500,000 ratings are in 1 and 2.
 
 ```{r}
-#Convert ratings matrix to real rating matrx which makes it dense
-ratingmat = as(ratingmat,"realRatingMatrix")
+library(ggplot2)
+ratings %>% 
+  ggplot(aes(x = rating, fill = factor(rating))) +
+  geom_bar(color = "grey10") + scale_fill_brewer(palette = "Dark2") + guides(fill = FALSE)
 
 ```
-By running above code, we reduced the size of ratingmat file to 69mb
+#### Number of ratings per book
+We want to check the distribution of the number of ratings for each book. Most of books has total of ratings below 1000.
 
-
-### Normalize the matrix
 ```{r}
-ratingmat_n =normalize(ratingmat)
-
-
-```
-
-###Create Recommender Model. The parameters are UBCF and Cosine similarity. We take 10 nearest neighbours
-```{r}
-rec_mod = Recommender(ratingmat_n,method = "UBCF",param =list(method ="Cosine",nn=10))
-```
-### Obtain top 5 recommendations for 1st user entry in dataset
-```{r}
-Top_5_pred = predict(rec_mod, ratingmat_n[1],n=5)
-
-```
-```{r}
-#convert the recommendations to a list
-Top_5_list = as(Top_5_pred, "list")
-Top_5_list
-```
-We got book recommendations for the top 5 books, but they are in book_id number format. Now, we need to look at the book names that correspond to these book_id number.We will do this by using the books dataset. It maps book_id to book tiles.
-
-
+#group by book_id,then do the plot
+ratings %>% 
+  group_by(book_id) %>% 
+  summarize(number_of_ratings_per_book = n()) %>%
+  ggplot(aes(number_of_ratings_per_book)) + 
+  geom_bar(fill = "green", color = "grey20",width = 1) +
+  coord_cartesian(c(100, 3000))
   
-```{r}
-# Part 2: Data Preparation
+```
 
-# clean the data
+
+
+
+####Number of ratings per user
+People are pretty active for the ratings. Most of people have number of rating between 75 - 150 times.
+```{r}
+ratings %>% 
+  group_by(user_id) %>% 
+  summarize(number_of_ratings_per_user = n()) %>% 
+  ggplot(aes(number_of_ratings_per_user)) + 
+  geom_bar(fill = "cadetblue3", color = "grey20") + coord_cartesian(c(3, 200))
+```
+
+####Distribution of mean book ratings
+What we have seen from below plot is the most of books have mean between 3.5- 5, this tells us that most of books get postive ratings.
+```{r}
+#group by book_id and get mean of rating for each book_id. We get a new dataset with column mean_perbook
+
+rating_perbook<-ratings %>%
+        group_by(book_id) %>%
+        mutate(mean_perbook = mean(rating, na.rm=T))
+        
+```
+
+```{r}
+ggplot(rating_perbook, aes(mean_perbook))+geom_histogram(fill = "orange", color = "grey20", bins = 30) + coord_cartesian(c(1,5))
+```
+
+####Distribution of mean user ratings
+From below plot, we saw that more people tend to give ratings higher than 3.5. Some of them have tendence to give highest rating 5, and another concentration area is around rating 4.
+
+```{r}
+ratings %>% 
+  group_by(user_id) %>% 
+  summarize(mean_per_user_rating = mean(rating)) %>% 
+  ggplot(aes(mean_per_user_rating)) +
+  geom_histogram(fill = "red", color = "grey20", bins =30)
+```
+### Data Exploration:books dataset
+
+The books dataset contains 21 variables after our data cleaning. We will explore some variables in this dataset to see how they are related to the ratings.
+
+```{r}
+# list of varialbe names in the books dataset
+names(books)
+```
+We see there are variables called language_code and authors. First, we will check how laugange related to the books. We uderstood that the dataset is from an English speaking website and assume that the most of books are English.
+
+####Languages
+
+From below plots, we see there are less than 1000 books are non-English.
+
+```{r}
+#import some libraries
+library(grid)
+library(ggplot2)
+library(lattice)
 
 ```
-  
+```{r}
+#language: English(this will include en-US, en-GB,eng,en-CA)
+p_english <- books %>% 
+  mutate(language = factor(language_code)) %>% 
+  group_by(language) %>% 
+  summarize(number_of_books = n()) %>% 
+  arrange(-number_of_books) %>% 
+  ggplot(aes(reorder(language, number_of_books), number_of_books, fill = reorder(language, number_of_books))) +
+  geom_bar(stat = "identity", color = "grey20", size = 0.5) + coord_flip() +
+  labs(x = "language", title = "English") + guides(fill = FALSE)
+
+P_non_english <- books %>% 
+  mutate(language = factor(language_code)) %>% 
+  filter(!language %in% c("en-US", "en-GB", "eng", "en-CA", "")) %>% 
+  group_by(language) %>% 
+  summarize(number_of_books = n()) %>% 
+  arrange(-number_of_books) %>% 
+  ggplot(aes(reorder(language, number_of_books), number_of_books, fill = reorder(language, number_of_books))) +
+  geom_bar(stat = "identity", color = "grey20", size = 0.5) + coord_flip() +
+  labs(x = "", title = "Non-English") + guides(fill = FALSE)
+
+grid.arrange(p_english,P_non_english, ncol=2)
+
+```
+####Authors
+We see from below plot, there are a few authors with lower rating below 3,which may indicate that rating is high or low not related to author.
+```{r}
+books %>% 
+  group_by(authors, average_rating) %>% 
+  summarize(mean_per_authors_rating = mean(average_rating)) %>% 
+  ggplot(aes(mean_per_authors_rating)) +
+  geom_histogram(fill = "red", color = "grey20", bins =30)
+```
+#### Top 10 books in average_rating  
+We rank the top 10 rated books according to their average_rating. The Complete Calvin and Hobbes has the highest average_rating at 4.82, it's so close to 5. With 28900 ratings_count, we see almose every one gives this book high rating.  
+```{r}
+#import library
+library(DT)
+library(dplyr)
+```
+```{r}
+#use arrange()to sort variable avaerage_rating, then get the top 10 books with title, ratings_count, average_rating and authors
+  books %>% 
+  arrange(-average_rating) %>% 
+  top_n(10,wt = average_rating) %>% 
+  select(title, ratings_count, average_rating, authors) %>% 
+  datatable(class = "nowrap hover row-border", escape = FALSE, options = list(dom = 't',scrollX = TRUE, autoWidth = TRUE))
+```
+#### Top 10 books in ratings_count  
+We rank the top 10 books according to their ratings_count. We saw some books on the list but their average_rating is less than mean of average_rating. This tells us a book is popular to be rated, but it doesn't mean that this book has higher average_rating.
+
+```{r}
+#use arrange()to sort variable ratings_count, then get the top 10 books with title, ratings_count, average_rating and authors
+  books %>% 
+  arrange(-ratings_count) %>% 
+  top_n(10,wt = ratings_count) %>% 
+  select(title, ratings_count, average_rating, authors) %>% 
+  datatable(class = "nowrap hover row-border", escape = FALSE, options = list(dom = 't',scrollX = TRUE, autoWidth = TRUE))
+```
+```{r}
+# mean of average_rating
+mean(books$average_rating)
+```
