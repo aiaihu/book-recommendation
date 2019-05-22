@@ -79,8 +79,13 @@ library(reshape2)
 
 ```
 ```{r}
-#set up working directory
-setwd("~/York U School/CSDA1040/book-recommendation/Datasets")
+#set up working directory - this will set the working directory to the same folder as your R studio RMD file - ensure that the CSVs outlined below are also in this folder
+set_wd <- function() {
+library(rstudioapi) # make sure you have it installed
+current_path <- getActiveDocumentContext()$path 
+setwd(dirname(current_path ))
+print( getwd() )
+}
 
 # Read 5 CSV files along with header
 books=read.csv("books.csv",header = TRUE)

@@ -1,2 +1,4 @@
 .DS_Store
 Datasets/.Rhistory
+.Rproj.user
+packrat/lib*/
