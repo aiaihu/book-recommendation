@@ -524,7 +524,7 @@ matrix(data = c(NA, 5, 4, NA, NA, 2, 1, NA, 4, NA, NA, NA, 3, NA, 3), nrow = 3, 
 
 ```
 
-######Create train dataset matrix with rows as user_id and columns as book_id
+######Create ratings dataset matrix with rows as user_id and columns as book_id
 
 ```{r}
 #creat a dimension_names list
@@ -585,10 +585,12 @@ sparse_ratings <- as(ratingmat_new, "sparseMatrix")
 Conver ratings matrix into a dense matrix by removing the zero's
 
 ```{r}
-#Convert ratings matrix into real matrix which makes it dense(it will take about 20minutes for this code)
-real_ratings = new ("realRatingMatrix",data =sparse_ratings)
+#Convert ratings matrix into real matrix which makes it dense.
+real_ratings =new("realRatingMatrix", data=sparse_ratings)
 
 ```
+
+
 
 ###Step 4: Useing Recommenderlab
 The recommendation package in R that we will use is recommenderlab. It provides us a User Based Collaborative Filtering (UBCF) model. For similarity among user ratings, we have a choice to calculate similarity according to the following methods:
@@ -635,5 +637,97 @@ Top_5_df %>%
 ```
 Based on similarity between users, our model recommends above 5 books to "Galileo".
 
+###Step 5: Evaluating The Predictions
+
+######create evaluation scheme
+Recommenderlab offers the possibility to easily evaluate and compare algorithms for recommendation systems.
+evaluationScheme() is to create an evaluationScheme object from a data set. The scheme can be a simple split into training and test data, k-fold cross-evaluation or using k independent bootstrap samples.
+method: cross-validation
+k: 1 fold crossvalidation
+given = -1:means all-but-1 evaluation
+goodRating = 4: all items with actual user rating of greater or equal 4 are considered positives in the evaluation process.
 
 
+
+```{r}
+# Let's check some algorithms against each other.(I tried to use "split" with train = .6, it takes so long time to run on the evaluate()function, therefore, I am using the "cross-validation")
+scheme <- evaluationScheme(real_ratings[1:600,], method = "cross-validation", k = 10, given = -1, goodRating = 4)
+
+```
+###### List all the Algorithms 
+We can list all the algorithms we want to compare.
+nn: the number of most similar users which are used to calculate the predictions
+algorithm ="RANDOM": randomly predicts a rating for each user
+
+```{r}
+algorithms <- list("random" = list(name = "RANDOM", param = NULL),
+                   "UBCF_5" = list(name = "UBCF", param = list(nn = 5)),
+                   "UBCF_10" = list(name = "UBCF", param = list(nn = 10)),
+                   "UBCF_20" = list(name = "UBCF", param = list(nn = 20)),                 
+                   "UBCF_40" = list(name = "UBCF", param = list(nn = 40))
+                   )
+```
+######Evaluate all results
+We use evaluate() function to evaluate the alogrithms with the given scheme. Let's predict it.
+
+```{r}
+# run alogrithms and predict
+eva_results <- evaluate(scheme, algorithms,type ="ratings")
+```
+
+######Plot RMSE,MSE and MAE for eva_results
+
+* RMSE: Root Mean Square Error. It tells you how concentrated the data is around the line of best fit.
+In order to plot RMSE, we will need to re-structure eva_results.
+
+* MSE: Mean Squared Error. MSE puts more weight into penalizing larger errors, so MSE is more useful when large errors are undesirable.
+
+* MAE: Mean Absolute Error.It is a measure of deviation of recommendation from user’s actual value.
+
+```{r}
+
+plot(eva_results)
+
+```
+The lower the MAE and RMSE, the more accurately the recommendation engine predicts user ratings. These metrics are good to use when the recommendations are based on predicting rating or number of transactions. They give us a sense of how accurate our prediction ratings are, and in turn how accurate our recommendations are.
+
+In above, we see user_based CF algrothms preform better prediction than random. There is no change on predictions with increasing number of nearest neighbours nn.
+
+######Different Algorithms
+Now, we want to compare the performace of different algorithms. The following algorithms are available in Recommenderlab.
+
+```{r}
+recommenderRegistry$get_entry_names()
+
+```
+We will compare UBCF with two additional algorithms, “popular” predicts ratings accoring to their mean_rating, SVD is matrix factorization approach(tried to use IBCF, but it took too long time to run the alogrithm, therefore, changed to SVD instead).
+
+```{r}
+# create scheme
+scheme_2 <- evaluationScheme(real_ratings[1:600,], method = "cross-validation", k = 10, given = -1, goodRating = 4)
+
+```
+```{r}
+#different algorithms (I was trying to use IBCF, however, it took too long time for predict and decide to use)
+algorithms_2 <- list("random" = list(name = "RANDOM", param = NULL),
+                   "popular" = list(name = "POPULAR"),
+                   "UBCF" = list(name = "UBCF"),
+                   "SVD" = list(name = "SVD")
+                   )
+```
+```{r}
+#run alogrithms and predict               
+eva_results_2 <- evaluate(scheme_2, algorithms_2, type = "ratings")
+
+```
+```{r}
+head(eva_results_2)
+```
+Plot RMSE,MSE and MAE for eva_results_2
+
+```{r}
+plot(eva_results_2)
+```
+
+#This is as of May 23 at 6:20
+#Shiny App is on pending

@@ -3,3 +3,5 @@ Datasets/.Rhistory
 .Rproj.user
 packrat/lib*/
 .RData
+.Rhistory
+.Rprofile
