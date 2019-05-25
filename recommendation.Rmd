@@ -7,42 +7,35 @@ Author: "Group Project: Aimin Amy Hu, Jacob Geeves, Eugene Park"
 Date: '2019-May-26'
 output:
   html_document: 
+    self_contained: no
+  pdf_document: default
+
 ---
-
-
-
-## Getting started
-To work with R Markdown, if necessary:
-
-* Install [R](http://www.r-project.org/)
-* Install the lastest version of [RStudio](http://rstudio.org/download/) (at time of posting, this is 0.96)
-* Install the latest version of the `knitr` package: `install.packages("knitr")`
-
-To run the basic working example that produced this blog post:
-
-* Open R Studio, and go to File - New - R Markdown
-* If necessary install `ggplot2` and `lattice` packages: `install.packages("ggplot2"); install.packages("lattice") `
-* Paste in the contents of this gist (which contains the R Markdown file used to produce this post) and save the file with an `.rmd` extension
-* Please also install.package("pROC")
-* Click Knit HTML
-
-#Book Recommendation System
+  
+# Book Recommendation System
+*By  Aimin Amy Hu, Jacob Geeves, Eugene Park*   
 
 ## Abstract
 
-The objective for this project is to builde a book recommender system which could suggest books to users based on similarities between books.In other words, it would recommend books that are similar to ones that a user already likes. It would look into similar books from the same genre(perhaps fantasy, science fiction, romance, thriller, mystery etc.). It can even make recommendation based on any variety of common elements such as from the same author.
+The objective for this project is to builde a book recommender system which could suggest books to users based on what other book lover who have read and rated in the past.In other words, it would recommend books that are similar to ones that a user already likes. It would look into similar books from the same genre(perhaps fantasy, science fiction, romance, thriller, mystery etc.). It can even make recommendation based on any variety of common elements such as from the same author.
 
 ## Introduction
 With techlogy rapidly update every day, online shopping, social media, YouTube and Netflix and many other websites are becoming  hoter and hoter every day. When you shopping on Amazon, you properly noted there were some products recommendation below the products which you have just bought.Have you ever bought anything from their recommended products? Did the recommended product ratings affect your buying decision? How did the recommend this product to you? Instead of discuss recommendation for shopping items online, we will discuss  recommendation system for books in this report.
 
 ## Business Objective
-The objective for this project is to builde a book recommender system which could suggest books to users based on similarities between books
+The objective for this project is to builde a book recommender system which could suggest books to users based on what other book lover who have read and rated in the past.
 
-### Research Questions:
+## Research Questions:
 
 * Q1: Does book's rating affect book's popularity?
 * Q2: How to predict user's rating or preferences for a given book?
-* Q3: How variables provide a predictive estimate of the likely ?
+* Q3: How variables provide a predictive estimate of the likely rating for a new book ?
+
+## Assumptions
+
+* We assume the datasets come from a site similar to goodreads.com but with more permissive terms of use.
+* We cannot see users' profiles such as their culture backgroud, income, edcuation backgroud,age etc. from the dataset, but we assume that the dataset has widely users from different level, backgroud from North America(this dataset comes from a US website).
+* We assume lack of users profiles' information will potentially reduce the recommender's accuracy. If this will be used for a online shopping book store, we strongly recommend to take consideration of the users' profiles.
 
 
 ## Part 1: Data Understanding
@@ -55,10 +48,9 @@ https://github.com/zygmuntz/goodbooks-10k/releases
 
 Downloaded dataset and saved in local computer.
 
-We assume the dataset come from a site similar to goodreads.com but with more permissive terms of use.
 Use below R code to read CSV files from local computer
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r results='hide', message=FALSE, warning=FALSE, results ='hide'}
 #start by loading some libraries
 library(recommenderlab)
 library(data.table)
@@ -103,15 +95,15 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 This dataset contains 5 CSV files:book_tags.csv, books.csv, ratings.csv, tags.csv, to_read.csv. We used R read.csv command to read all csv files into data frame.
 
 
-######to_read:
-Contains 912705 observations(rows) and 2 variables(columns). This data set contains user_id and book_id.
+######to_read.csv
+Contains 912705 observations(rows) and 2 variables(columns). This dataset contains user_id and book_id.
 
 ```{r}
 glimpse(to_read)
 ```
 
 #### ratings.csv
-Contains 5976479 observations(rows) and 3 variables(columns). This data set includes all users's ratings of the 10,000 books.
+Contains 5976479 observations(rows) and 3 variables(columns). This dataset includes all users's ratings of the 10,000 books.
 
 ```{r, result='asis', echo=FALSE}
 datatable(head(ratings, 10), class = "nowrap hover row-border", options = list(dom = 't',scrollX = FALSE, autoWidth = TRUE))
@@ -168,14 +160,16 @@ We will check if there are duplicated elements in ratings dataset and books data
 library(dplyr)
 ```
 ```{r}
-#checking if there are duplicated rows
-
-ratings <- ratings %>%
-              distinct(user_id, book_id, .keep_all = TRUE)
+#checking if there are duplicated rows and removed it. distinct() keep only unique/distinct rows from a data frame.
+ratings <- ratings %>% distinct(user_id,book_id, .keep_all = TRUE)
+```       
+```{r}
+cat('Number of rows after removed duplicated rows if there are: ', nrow(ratings))          
 ```
 ```{r}
 books <- books %>%
                 distinct(book_id, .keep_all = TRUE)
+cat('Number of rows after removed duplicated rows if there are: ', nrow(books)) 
 ```
 
 ### Step 2: Missing Values
@@ -216,13 +210,13 @@ Data set  |Variable name             | Missing/NA Values
   books   | isbn13                   | 585                       
   books   | original_publication_year| 21  
           |                          |
-There are only missing vaules in books_df. The missing values are isbn(International Standard Book Number) and original_publication_year. These two variables will not be variables used in a recommender system. Therefore, we will not deal these missing values. We can be confident is saying that this dataset contains good quality data.
+There are only missing vaules in books dataset. The missing values are isbn(International Standard Book Number) and original_publication_year. These two variables will not be variables used in a recommender system. Therefore, we will not deal these missing values. We can be confident is saying that this dataset contains good quality of data.
 
 ### Step 3:Clean data
 
 Before we use the dataset, we will do some data clean to remove unuseful values. In this way, it will make the dataset smaller and make computation faster.
 
-*	Remove variables: books dataset
+*	Remove variables from books dataset
 * This data set contains 585 missing values under variable 'isbn13'. We have variable 'isbn', we assume these two variables are the same, hence, we    will remove variable 'isbn13' from the data frame. 
 
 * This data set contains variable 'best_book_id'. This id number is identical to variable 'goodreads_book_id'. Becasue variable 'goodreads_book_id' is cross referenced in the 'book_tags_df' dataset it will remain while the 'best_book_id' variable is removed.
@@ -243,7 +237,7 @@ After removed two variables from this dataset, we are haveing 21 variables.
 ### Data Exploration:ratings dataset
 
 ####Select a subset dataset
-Our ratings dataset contains about 6 million rows, it is huge dataset for the analysis and also takes a lot of memory space. In order to have faster computation speed, we decided to suset the ratings dataset with sample fraction at 25% . As it is huge dataset (still about 1.5million rows), we believe this subset will not bring any bias for the analysis.
+Our ratings dataset contains about 6 million rows, it is huge dataset for the analysis and also takes a lot of memory space. In order to have faster computation speed, we decided to suset the ratings dataset with sample fraction at 25% . As it is a huge dataset (still about 1.5million rows), we believe this subset will not bring any bias for the analysis.
 
 ```{r}
 # with 25% of users(for FYI only, I have tried 40%, it's still very slow for computation of matrix, therefore, we decided to use 25% instead )
@@ -267,7 +261,7 @@ cat('Number of ratings (after): ', nrow(ratings))
 As we know that the ratings dataset contains user_id, book_id and rating. We use ggplot() and geom()to get visulaztion between these variables.
 
 #### Distribution of ratings
-We check distribution of ratings and found:
+After we checked distribution of ratings and found:
 The most of ratings are between 3-5 and about 100,000 ratings are in 1 and 2.
 
 ```{r}
@@ -303,7 +297,7 @@ ratings %>%
   geom_bar(fill = "cadetblue3", color = "grey20") + coord_cartesian(c(3, 200))
 ```
 
-####Distribution of mean book ratings
+####Distribution of mean ratings for each book
 What we have seen from below plot is the most of books have mean between 3.5- 5, this tells us that most of books get postive ratings.
 ```{r}
 #group by book_id and get mean of rating for each book_id. We get a new dataset with column mean_perbook
@@ -815,20 +809,6 @@ rec_num
 ```
 ```{r}
 cat('The next recommend book is ', as.numeric(rec_num))
-```
-
-
-
-
-```{r}
-ratings.new <- as(rr_new, "realRatingMatrix")
-print(ratings.new)
-```
-```{r}
-#recommend next book
-recNext <- predict(ub_rcmnd, ratings.new, n=1)
-recNum <- as (recNext, "list")
-recNum
 ```
 
 ###Deployment Discussion
