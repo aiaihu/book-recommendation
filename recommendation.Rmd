@@ -7,8 +7,6 @@ Author: "Group Project: Aimin Amy Hu, Jacob Geeves, Eugene Park"
 Date: '2019-May-26'
 output:
   html_document: 
-    self_contained: no
-  pdf_document: default
 ---
 
 
@@ -28,6 +26,7 @@ To run the basic working example that produced this blog post:
 * Please also install.package("pROC")
 * Click Knit HTML
 
+#Book Recommendation System
 
 ## Abstract
 
@@ -540,10 +539,10 @@ library(tidyverse)
 #Spread a key-value pair across multiple columns.spread() takes two columns (key & value), and spreads into multiple columns: it makes “long” data wider.(will take several minutes due to the large dataset)
 ratingmat <- spread(select(ratings, book_id, user_id, rating), book_id, rating) %>%
   select(-user_id)
-    
+df = ratingmat 
 ```
 ```{r}
-#Create train dataset matrix with rows as user_id and columns as book_id
+#Create dataset matrix with rows as user_id and columns as book_id
 
 ratingmat = as.matrix(ratingmat)
 ```
@@ -576,9 +575,15 @@ In above, we see there are the most of the values in the rating matrix are missi
 ratingmat_new <- ratingmat
 ratingmat_new[is.na(ratingmat)] <- 0
 
-#sparseMatrix
-sparse_ratings <- as(ratingmat_new, "sparseMatrix")
 
+```
+```{r}
+#sparseMatrix
+sparse_ratings <- as(ratingmat_new, "sparseMatrix") 
+
+#remove ratingmat_new as we don't need it anymore
+rm(ratingmat_new)
+gc()
 ```
 
 
@@ -587,7 +592,8 @@ Conver ratings matrix into a dense matrix by removing the zero's
 ```{r}
 #Convert ratings matrix into real matrix which makes it dense.
 real_ratings =new("realRatingMatrix", data=sparse_ratings)
-
+real_ratings[1:5,1:5]
+dim(real_ratings)
 ```
 
 
@@ -604,8 +610,8 @@ The parameters are UBCF and Cosine similarity. We take 5 nearest neighbours.
 
 ```{r}
 
-#Create Recommender Model. The parameters are UBCF and "cosine" similarity. We take 5 nearest neighbours
-rec_mod = Recommender(real_ratings, method = "UBCF", param=list(method="cosine",nn=5)) 
+#Create Recommender Model. The parameters are UBCF and "pearson" similarity. We take 5 nearest neighbours
+rec_mod = Recommender(real_ratings, method = "UBCF", param=list(method="pearson",nn=5)) 
 
 ```
 ###### Predictions
@@ -639,21 +645,43 @@ Based on similarity between users, our model recommends above 5 books to "Galile
 
 ###Step 5: Evaluating The Predictions
 
-######create evaluation scheme
+######Create evaluation scheme
 Recommenderlab offers the possibility to easily evaluate and compare algorithms for recommendation systems.
-evaluationScheme() is to create an evaluationScheme object from a data set. The scheme can be a simple split into training and test data, k-fold cross-evaluation or using k independent bootstrap samples.
-method: cross-validation
+evaluationScheme() is to create an evaluationScheme object from a data set. The scheme can be a simple split into training and test data.
+method: split
+k =1 for split
 k: 1 fold crossvalidation
 given = -1:means all-but-1 evaluation
 goodRating = 4: all items with actual user rating of greater or equal 4 are considered positives in the evaluation process.
+We train a UBCF model by using a small training dataset.
 
-
+We split the first 5000 users in real_ratings dataset into 90/10 (known/unknown)
 
 ```{r}
-# Let's check some algorithms against each other.(I tried to use "split" with train = .6, it takes so long time to run on the evaluate()function, therefore, I am using the "cross-validation")
-scheme <- evaluationScheme(real_ratings[1:600,], method = "cross-validation", k = 10, given = -1, goodRating = 4)
+# create 90/10 split (known/unknown) for the first 5000 users in real_ratings
+scheme <- evaluationScheme(real_ratings[1:5000,], method = "split", train = .9, k = 1, given = -1, goodRating = 4)
+scheme
+```
+###### Crate training dataset,test dataset(known/unknown)
+
+```{r}
+#training set
+tr_data <- getData(scheme,"train")
+tr_data
+```
+```{r}
+#test_kn set
+test_kn <- getData(scheme, "known")
+test_kn
+```
+
+```{r}
+#test_unkn set
+test_unkn <- getData(scheme,"unknown")
+test_unkn
 
 ```
+
 ###### List all the Algorithms 
 We can list all the algorithms we want to compare.
 nn: the number of most similar users which are used to calculate the predictions
@@ -661,21 +689,22 @@ algorithm ="RANDOM": randomly predicts a rating for each user
 
 ```{r}
 algorithms <- list("random" = list(name = "RANDOM", param = NULL),
-                   "UBCF_5" = list(name = "UBCF", param = list(nn = 5)),
-                   "UBCF_10" = list(name = "UBCF", param = list(nn = 10)),
-                   "UBCF_20" = list(name = "UBCF", param = list(nn = 20)),                 
-                   "UBCF_40" = list(name = "UBCF", param = list(nn = 40))
+                   "UBCF_5" = list(name = "UBCF", param = list(method ="pearson",nn = 5)),
+                   "UBCF_10" = list(name = "UBCF", param = list(method="pearson",nn = 10)),
+                   "UBCF_20" = list(name = "UBCF", param = list(method="pearson",nn = 20)),                 
+                   "UBCF_40" = list(name = "UBCF", param = list(method="pearson",nn = 40))
                    )
+
 ```
-######Evaluate all results
+######Evaluate all results: run algorithms and predict
 We use evaluate() function to evaluate the alogrithms with the given scheme. Let's predict it.
 
 ```{r}
-# run alogrithms and predict
+# run alogrithms and predict(it takes about 6 minutes due to 5 algorithms)
 eva_results <- evaluate(scheme, algorithms,type ="ratings")
 ```
 
-######Plot RMSE,MSE and MAE for eva_results
+###### Visualize RMSE,MSE and MAE for eva_results
 
 * RMSE: Root Mean Square Error. It tells you how concentrated the data is around the line of best fit.
 In order to plot RMSE, we will need to re-structure eva_results.
@@ -691,43 +720,125 @@ plot(eva_results)
 ```
 The lower the MAE and RMSE, the more accurately the recommendation engine predicts user ratings. These metrics are good to use when the recommendations are based on predicting rating or number of transactions. They give us a sense of how accurate our prediction ratings are, and in turn how accurate our recommendations are.
 
-In above, we see user_based CF algrothms preform better prediction than random. There is no change on predictions with increasing number of nearest neighbours nn.
+In above, we see user_based CF algrothms preform better prediction than random, and RMSE increase slightly when increasing number of nearest neighbours nn.
 
-######Different Algorithms
-Now, we want to compare the performace of different algorithms. The following algorithms are available in Recommenderlab.
 
-```{r}
-recommenderRegistry$get_entry_names()
-
-```
-We will compare UBCF with two additional algorithms, “popular” predicts ratings accoring to their mean_rating, SVD is matrix factorization approach(tried to use IBCF, but it took too long time to run the alogrithm, therefore, changed to SVD instead).
+######create user-based CF recommender using training data
 
 ```{r}
-# create scheme
-scheme_2 <- evaluationScheme(real_ratings[1:600,], method = "cross-validation", k = 10, given = -1, goodRating = 4)
+#create a user-based CF recommender using training data
+ub_rcmnd <- Recommender(tr_data,"UBCF",param=list(method="pearson", nn =10))
+ub_rcmnd
 
 ```
 ```{r}
-#different algorithms (I was trying to use IBCF, however, it took too long time for predict and decide to use)
-algorithms_2 <- list("random" = list(name = "RANDOM", param = NULL),
-                   "popular" = list(name = "POPULAR"),
-                   "UBCF" = list(name = "UBCF"),
-                   "SVD" = list(name = "SVD")
-                   )
-```
-```{r}
-#run alogrithms and predict               
-eva_results_2 <- evaluate(scheme_2, algorithms_2, type = "ratings")
-
-```
-```{r}
-head(eva_results_2)
-```
-Plot RMSE,MSE and MAE for eva_results_2
-
-```{r}
-plot(eva_results_2)
+ubc_rcmnd <- Recommender(tr_data,"UBCF",param=list(method="cosine", nn =10))
+ubc_rcmnd 
 ```
 
-#This is as of May 23 at 6:20
-#Shiny App is on pending
+######Create predictions for the test users using know ratings
+```{r}
+#create predictions for the test data using known ratings
+tub_pre<- predict(ub_rcmnd, test_kn, type = "ratings")
+tub_pre
+
+tubc_pre <- predict(ubc_rcmnd, test_kn, type = "ratings")
+tubc_pre
+```
+######Evaluate recommendations on "unknown" ratings
+
+```{r}
+# UBCF Pearson
+
+tub_ac <-calcPredictionAccuracy(tub_pre, test_unkn)
+head(tub_ac)
+```
+```{r}
+#UBCF Cosine
+tubc_ac <-calcPredictionAccuracy(tubc_pre, test_unkn)
+head(tubc_ac)
+```
+We see from above evaluation, RMSE for both are just around 0.82 which is a small number, but the Pearson has the smallest number.Hence, we will use Pearson model. We are confident to say that our model is fit to this dataset for the recommendations.
+
+######Compare predictions with real "unknown" ratings
+
+```{r}
+as(test_unkn, "matrix")[1:15, 60:70]
+```
+```{r}
+as(tub_pre, "matrix")[1:15, 60:70]
+```
+
+From above, we guess the accuracy rate might not be high. Does this due toa small dataset that we are using? I am not quite sure as our RMSE was low.
+
+######Create recommendations topNList with n=5  for a user
+```{r}
+top_n_p <-predict(ub_rcmnd,real_ratings[20],n=5)
+
+top_n_p
+```
+```{r}
+as(top_n_p, "list")
+```
+
+###### Create a "new" user ratings and recommend next book
+Create ratings matrix with rows as user_id and columns as book_id
+
+
+```{r}
+#Create initial empty predictions matrix.(1 user and 10000 books)
+
+m <- matrix(sample(c(NA,0:5),10000, replace=TRUE, prob=c(.6,rep(.3/6,6))),
+	nrow=1, ncol=10000, dimnames = list(
+	    user_id =paste(1:1),
+	    book_id =paste(1:10000)
+    ))
+dim(m)
+```
+
+
+
+
+```{r}
+# coerce into a realRatingMAtrix
+ratings.new <- as(m, "realRatingMatrix")
+dim(ratings.new)
+```
+
+
+######Recommend next book for this new user
+
+```{r}
+rec_book <-predict(ub_rcmnd,ratings.new, n=1)
+rec_num = as(rec_book, "list")
+rec_num
+```
+```{r}
+cat('The next recommend book is ', as.numeric(rec_num))
+```
+
+
+
+
+```{r}
+ratings.new <- as(rr_new, "realRatingMatrix")
+print(ratings.new)
+```
+```{r}
+#recommend next book
+recNext <- predict(ub_rcmnd, ratings.new, n=1)
+recNum <- as (recNext, "list")
+recNum
+```
+
+###Deployment Discussion
+*Based on RMSE number, the is model gives good accuracy. We can use this model to recommend books, movies,shows or some other items for online shopping. However, it requests a large dataset to increase the accuracy.
+
+*We compared model with different alogrithms and found "UBCF_Pearson" is the best one for this dataset. The computation time is fast and RMSE is the smallest one.
+
+* As one user can rate many books or one book can have many user to rate it, therefore, when we do the dataset split, it could bring bias into the train and test dataset.
+
+## Part 5: Shinny App
+TBA
+
+
