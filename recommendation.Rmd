@@ -608,12 +608,12 @@ The parameters are UBCF and Cosine similarity. We take 5 nearest neighbours.
 rec_mod = Recommender(real_ratings, method = "UBCF", param=list(method="pearson",nn=5)) 
 
 ```
-###### Predictions
-We have built our model, now we can start to do predictions by call predict(). This will pass the model, the ratings for the user that you wish to predict ratings for and a parameter which is to tell the function that you want to get predicted ratings back.
+###### Predictions of ratings and recommendation
+We have built our model, now we can start to do predictions by call predict(). This will pass the model, the ratings for the user that you wish to predict ratings for and a parameter which is to tell the function that we want to get predicted ratings back.
 
-Let's predict the 20th user entry in the real_ratings dataset.We want to look at the top 5 recommendations for the 20th user entry in the dataset. For the convenience, we call this user "Galileo"
+Let's predict the 20th user entry in the real_ratings dataset.We want to look at the top 5 books that the user will give rating for . For the convenience, we call this user "Galileo"
 ```{r}
-#Obtain top 5 recommendations for 20th user(Galileo) entry in dataset
+#Obtain top 5 ratings from 20th user(Galileo) entry in dataset. type ="ratings" is a parameter to tell the function that we want to get predicted ratings back.
 Top_5_pred = predict(rec_mod, real_ratings[20], type="ratings")
 
 # Convert the list to data frame
@@ -635,7 +635,11 @@ Top_5_df %>%
   datatable(class = "nowrap hover row-border",escape=FALSE, options = list(dom = 't',scrollx = TRUE, autoWidth = TRUE))
 
 ```
-Based on similarity between users, our model recommends above 5 books to "Galileo".
+Based on other users who are similar to user "Galileo"have rated these books, we predected ratings for these 5 books that user "Galileo" will probably give.
+
+After we got predected ratings for books from the user, we can now based on the propable ratings to recommend books for them.
+
+
 
 ###Step 5: Evaluating The Predictions
 
@@ -714,7 +718,7 @@ plot(eva_results)
 ```
 The lower the MAE and RMSE, the more accurately the recommendation engine predicts user ratings. These metrics are good to use when the recommendations are based on predicting rating or number of transactions. They give us a sense of how accurate our prediction ratings are, and in turn how accurate our recommendations are.
 
-In above, we see user_based CF algrothms preform better prediction than random, and RMSE increase slightly when increasing number of nearest neighbours nn.
+In above, we see user_based CF algrothms preform better prediction than RANDOM, but the UBCF model takes much longer time than RANDOM model. We sacrifice time to get better prediction. Another fact is RMSE increases slightly when increasing number of nearest neighbours nn. 
 
 
 ######create user-based CF recommender using training data
@@ -780,10 +784,10 @@ Create ratings matrix with rows as user_id and columns as book_id
 
 
 ```{r}
-#Create initial empty predictions matrix.(1 user and 10000 books)
+#Create initial empty predictions matrix.(df is at line 536)
 
-m <- matrix(sample(c(NA,0:5),10000, replace=TRUE, prob=c(.6,rep(.3/6,6))),
-	nrow=1, ncol=10000, dimnames = list(
+m <- matrix(sample(c(NA,0:5),ncol(df), replace=TRUE, prob=c(.6,rep(.3/6,6))),
+	nrow=1, ncol(df), dimnames = list(
 	    user_id =paste(1:1),
 	    book_id =paste(1:10000)
     ))
@@ -810,15 +814,17 @@ rec_num
 ```{r}
 cat('The next recommend book is ', as.numeric(rec_num))
 ```
-
-###Deployment Discussion
-*Based on RMSE number, the is model gives good accuracy. We can use this model to recommend books, movies,shows or some other items for online shopping. However, it requests a large dataset to increase the accuracy.
-
-*We compared model with different alogrithms and found "UBCF_Pearson" is the best one for this dataset. The computation time is fast and RMSE is the smallest one.
-
-* As one user can rate many books or one book can have many user to rate it, therefore, when we do the dataset split, it could bring bias into the train and test dataset.
-
 ## Part 5: Shinny App
-TBA
+In order to have a real book recommender, we will build an app. We will use the UBCF Collaborative Filtering system. Our app will recommend the top 5 books for an existing user based on predicted ratings that the user will be given on these books. Due to the dataset which we used in this project is very larg, we will only subsample 20% of the rating dataset to increase computation speed. After your put an user_id which is existing in the ratings dataset, the recommender system will tell you the top five books that the user will probably like it.
+
+
+##Deployment Discussion
+*Based on RMSE number, UBCF model is the model gives better accuracy. We can use this model to recommend books, movies,shows or some other items for online shopping. However, this model takes longer time than RANDOM. When you have a large dataset, you may need to take the time and prediction accuracy into your consideration.
+
+* As one user can rate many books or one book can have many user to rate it, therefore, when we do the dataset split based on user_id, it could bring bias into the train and test dataset.
+
+* We would suggest to get more information about user profiles such as age, education background, culture background etc. to do more deep analying as there are many factors in people's reading taste.
+
+
 
 
