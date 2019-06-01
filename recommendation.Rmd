@@ -825,8 +825,9 @@ Due to the limited space for the instance, we can only use a small ratings datas
 
 * We would also suggest to get more information about user profiles such as age, education background, culture background etc. to do more deep analying as there are many factors in people's reading taste.
 
+## Project Codes
 
-* Project code and dataset are on [github](https://github.com/aiaihu/book-recommendation)
+All project codes and dataset are on [github](https://github.com/aiaihu/book-recommendation)
 
 
 
