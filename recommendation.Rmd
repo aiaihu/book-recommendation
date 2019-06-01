@@ -9,7 +9,6 @@ output:
   html_document: 
     self_contained: no
   pdf_document: default
-
 ---
 
 
@@ -166,7 +165,7 @@ books <- books %>%
 cat('Number of rows after removed duplicated rows if there are: ', nrow(books)) 
 ```
 
-### Step 2: Missing Values
+### Step 2: Missing values
 
 Using code: colSums(is.na()) to get below display. This tells which variable has how many missing values in this data set.
 
@@ -196,7 +195,7 @@ Data set  |Variable name             | Missing/NA Values
 ----------|--------------------------|-------------------
   books   | isbn13                   | 585                       
   books   | original_publication_year| 21  
-          |                          |
+          |                          |                   
 There are only missing vaules in books dataset. The missing values are isbn(International Standard Book Number) and original_publication_year. These two variables will not be variables used in a recommender system. Therefore, we will not deal these missing values. We can be confident is saying that this dataset contains good quality of data.
 
 ### Step 3:Clean data
@@ -221,7 +220,7 @@ After removed two variables from this dataset, we are haveing 21 variables.
 ##Part 3: Data Exploration
 
 
-### Data Exploration:ratings dataset
+### Ratings dataset
 
 ####Select a subset dataset
 Our ratings dataset contains about 6 million rows, it is huge dataset for the analysis and also takes a lot of memory space. In order to have faster computation speed, we decided to suset the ratings dataset with sample fraction at 25% . As it is a huge dataset (still about 1.5million rows), we believe this subset will not bring any bias for the analysis.
@@ -246,6 +245,7 @@ ratings <- filter(ratings,user_id %in% sample_users)
 cat('Number of ratings (after): ', nrow(ratings))
 ```
 As we know that the ratings dataset contains user_id, book_id and rating. We use ggplot() and geom()to get visulaztion between these variables.
+
 
 #### Distribution of ratings
 After we checked distribution of ratings and found:
@@ -325,7 +325,7 @@ ratings %>%
 ```
 
 
-### Data Exploration:books dataset
+### Books dataset
 
 The books dataset contains 21 variables after our data cleaning. We will explore some variables in this dataset to see how they are related to the ratings.
 
@@ -337,7 +337,7 @@ We see there are variables called language_code and authors. First, we will chec
 
 ####Languages
 
-From below plots, we see there are less than 1000 books are non-English.
+From below plots, we see majority of books are English books.
 
 ```{r}
 #import some libraries
@@ -415,7 +415,7 @@ ggplot(books,aes(x=ratings_count, y=average_rating))+
 
 
 #### Top 10 books in average_rating  
-We rank the top 10 rated books according to their average_rating. The Complete Calvin and Hobbes has the highest average_rating at 4.82, it's so close to 5. With 28900 ratings_count, we see almose every one gives this book high rating.  
+We rank the top 10 rated books according to their average_rating. The Complete Calvin and Hobbes has the highest average_rating at 4.82, it's so close to 5. With 28900 ratings_count, we see almost every one gives this book the highest rating.  
 ```{r}
 #import library
 library(DT)
@@ -457,7 +457,7 @@ We see some correlations from below correlation martrix plot.
 
 * Variable ratings_count has positive 1 correlation with variable work_ratings_count. Does this mean that they are same vaules but just called different variable name? We are not sure about this as the discrepation about the dataset did not specify it.
 
-* Variable work_text_reviews_count has positive 0.8 correlation with ratings_count and work_ratings_count.This total make sense, when people read text review, will more likely to rate it.
+* Variable work_text_reviews_count has positive 0.8 correlation with ratings_count and work_ratings_count.This total makes sense, when people write text review, will more likely to rate it.
 
 * Variable books_count has positive correlation with variable work_text_reviews_count, ratings_count and work_ratings_count; this variable also has strong negative correlation with variable original_publication_year, this does make sense as the original_publication_year increases, the books_count decreases. Variable books_count also has negative correlation with average_rating, but not strong, is just about -0.1.
 
@@ -492,7 +492,7 @@ In this project, we will implement User-based collaborative filtering systems. B
 
 ###Step 1: Create ratings matrix
 
-######Create a sample matrix for understanding
+####Create a sample matrix for understanding
 
 To restructure our train dataset by create a ratings matrix with rows as user_id and columns as book_id. Here is example to understand it.
 user_id: 6,7,8
@@ -504,7 +504,7 @@ matrix(data = c(NA, 5, 4, NA, NA, 2, 1, NA, 4, NA, NA, NA, 3, NA, 3), nrow = 3, 
 
 ```
 
-######Create ratings dataset matrix with rows as user_id and columns as book_id
+####Create ratings dataset matrix with rows as user_id and columns as book_id
 
 ```{r}
 #creat a dimension_names list
@@ -578,14 +578,15 @@ dim(real_ratings)
 
 
 
-###Step 4: Useing Recommenderlab
+###Step 3: Useing recommenderlab
 The recommendation package in R that we will use is recommenderlab. It provides us a User Based Collaborative Filtering (UBCF) model. For similarity among user ratings, we have a choice to calculate similarity according to the following methods:
 
 * Jaccard similarity
 * Cosine similarity
 * Pearson similarity
 
-###### Create Recommender Model.
+#### Create Recommender Model
+
 The parameters are UBCF and Cosine similarity. We take 5 nearest neighbours.
 
 ```{r}
@@ -594,10 +595,11 @@ The parameters are UBCF and Cosine similarity. We take 5 nearest neighbours.
 rec_mod = Recommender(real_ratings, method = "UBCF", param=list(method="pearson",nn=5)) 
 
 ```
-###### Predictions of ratings and recommendation
+#### Predictions of ratings and recommendation
+
 We have built our model, now we can start to do predictions by call predict(). This will pass the model, the ratings for the user that you wish to predict ratings for and a parameter which is to tell the function that we want to get predicted ratings back.
 
-Let's predict the 20th user entry in the real_ratings dataset.We want to look at the top 5 books that the user will give rating for . For the convenience, we call this user "Galileo"
+Let's predict the 20th user entry in the real_ratings dataset.We want to look at the top 5 books that the user would give rating for . For the convenience, we call this user "Galileo"
 ```{r}
 #Obtain top 5 ratings from 20th user(Galileo) entry in dataset. type ="ratings" is a parameter to tell the function that we want to get predicted ratings back.
 Top_5_pred = predict(rec_mod, real_ratings[20], type="ratings")
@@ -627,9 +629,10 @@ After we got predected ratings for books from the user, we can now based on the 
 
 
 
-###Step 5: Evaluating The Predictions
+###Step 4: Evaluating the predictions
 
-######Create evaluation scheme
+####Create evaluation scheme
+
 Recommenderlab offers the possibility to easily evaluate and compare algorithms for recommendation systems.
 evaluationScheme() is to create an evaluationScheme object from a data set. The scheme can be a simple split into training and test data.
 method: split
@@ -639,14 +642,14 @@ given = -1:means all-but-1 evaluation
 goodRating = 4: all items with actual user rating of greater or equal 4 are considered positives in the evaluation process.
 We train a UBCF model by using a small training dataset.
 
-We split the first 5000 users in real_ratings dataset into 90/10 (known/unknown)
+We split the first 2000 users in real_ratings dataset into 90/10 (known/unknown)
 
 ```{r}
-# create 90/10 split (known/unknown) for the first 5000 users in real_ratings
-scheme <- evaluationScheme(real_ratings[1:5000,], method = "split", train = .9, k = 1, given = -1, goodRating = 4)
+# create 90/10 split (known/unknown) for the first 2000 users in real_ratings
+scheme <- evaluationScheme(real_ratings[1:2000,], method = "split", train = .9, k = 1, given = -1, goodRating = 4)
 scheme
 ```
-###### Crate training dataset,test dataset(known/unknown)
+#### Crate training dataset,test dataset(known/unknown)
 
 ```{r}
 #training set
@@ -666,7 +669,7 @@ test_unkn
 
 ```
 
-###### List all the Algorithms 
+#### List all the Algorithms 
 We can list all the algorithms we want to compare.
 nn: the number of most similar users which are used to calculate the predictions
 algorithm ="RANDOM": randomly predicts a rating for each user
@@ -680,7 +683,7 @@ algorithms <- list("random" = list(name = "RANDOM", param = NULL),
                    )
 
 ```
-######Evaluate all results: run algorithms and predict
+####Evaluate all results: run algorithms and predict
 We use evaluate() function to evaluate the alogrithms with the given scheme. Let's predict it.
 
 ```{r}
@@ -688,7 +691,7 @@ We use evaluate() function to evaluate the alogrithms with the given scheme. Let
 eva_results <- evaluate(scheme, algorithms,type ="ratings")
 ```
 
-###### Visualize RMSE,MSE and MAE for eva_results
+#### Visualize RMSE,MSE and MAE for eva_results
 
 * RMSE: Root Mean Square Error. It tells you how concentrated the data is around the line of best fit.
 In order to plot RMSE, we will need to re-structure eva_results.
@@ -707,7 +710,7 @@ The lower the MAE and RMSE, the more accurately the recommendation engine predic
 In above, we see user_based CF algrothms preform better prediction than RANDOM, but the UBCF model takes much longer time than RANDOM model. We sacrifice time to get better prediction. Another fact is RMSE increases slightly when increasing number of nearest neighbours nn. 
 
 
-######create user-based CF recommender using training data
+####create user-based CF recommender using training data
 
 ```{r}
 #create a user-based CF recommender using training data
@@ -720,7 +723,7 @@ ubc_rcmnd <- Recommender(tr_data,"UBCF",param=list(method="cosine", nn =10))
 ubc_rcmnd 
 ```
 
-######Create predictions for the test users using know ratings
+####Create predictions for the test users using know ratings
 ```{r}
 #create predictions for the test data using known ratings
 tub_pre<- predict(ub_rcmnd, test_kn, type = "ratings")
@@ -729,7 +732,7 @@ tub_pre
 tubc_pre <- predict(ubc_rcmnd, test_kn, type = "ratings")
 tubc_pre
 ```
-######Evaluate recommendations on "unknown" ratings
+####Evaluate recommendations on "unknown" ratings
 
 ```{r}
 # UBCF Pearson
@@ -744,7 +747,7 @@ head(tubc_ac)
 ```
 We see from above evaluation, RMSE for both are just around 0.82 which is a small number, but the Pearson has the smallest number.Hence, we will use Pearson model. We are confident to say that our model is fit to this dataset for the recommendations.
 
-######Compare predictions with real "unknown" ratings
+####Compare predictions with real "unknown" ratings
 
 ```{r}
 as(test_unkn, "matrix")[1:15, 60:70]
@@ -753,9 +756,9 @@ as(test_unkn, "matrix")[1:15, 60:70]
 as(tub_pre, "matrix")[1:15, 60:70]
 ```
 
-From above, we guess the accuracy rate might not be high. Does this due toa small dataset that we are using? I am not quite sure as our RMSE was low.
+From above, we guess the accuracy rate might not be high. Does this due to a small dataset that we are using? I am not quite sure as our RMSE was low.
 
-######Create recommendations topNList with n=5  for a user
+####Create recommendations topNList with n=5  for a user
 ```{r}
 top_n_p <-predict(ub_rcmnd,real_ratings[20],n=5)
 
@@ -765,7 +768,7 @@ top_n_p
 as(top_n_p, "list")
 ```
 
-###### Create a "new" user ratings and recommend next book
+#### Create a "new" user ratings and recommend next book
 Create ratings matrix with rows as user_id and columns as book_id
 
 
@@ -791,33 +794,39 @@ dim(ratings.new)
 ```
 
 
-######Recommend next 5 books for this new user
+####Recommend next 5 books for this new user
 
 ```{r}
 rec_book <-predict(ub_rcmnd,ratings.new, n=5)
 rec_num = as(rec_book, "list")
 rec_num
 ```
-## Part 5: Shinny App
+## Part 5: Shiny App
 
-In order to have a real book recommender, we built an book recommendation app. We used the UBCF Collaborative Filtering system to recommend the top 5 books for an user who rates the books which we give on the app. All books will be randomly given to the user to rate on the app. We need user to rate at least 5 books to get the recommendations. Ideally, the more books user rated, the better recommendation accuracy is. We deloyed our app on 
-[Shinyapps.io](https://amy-hu-zhao-2001.shinyapps.io/book_recommend_shiny_app/)
-Shiny App code on [github](https://github.com/aiaihu/book-recommendation-shinny-app)
+In order to have a real book recommender, we built an book recommendation app. We used the UBCF Collaborative Filtering system to recommend the top 5 books for an user who rates at least books which we give on the app. All books will be randomly given to the user to rate on the app. We need user to rate at least 5 books to get the recommendations. Ideally, the more books user rated, the better recommendation accuracy is. However, due to ShinyApp.io limited space (1GB) for an instance, we only give 20 books to rate.
 
-Due to the limited space for the instance, we can only use a small ratings dataset for the app. 
+We deloyed our app on [Shinyapps.io](https://amy-hu-zhao-2001.shinyapps.io/book_recommend_shiny_app/)
+
+Shiny App code on [github](https://github.com/aiaihu/book_recommend_shiny_app)
+
+Due to the limited space for the instance, we can only use a small ratings dataset when we built the recommendation model for the app. 
 
 
 ##Deployment Discussion
 
-*Based on RMSE number, UBCF model is the model gives better accuracy. We can use this model to recommend books, movies,shows or some other items for online shopping. However, this model takes longer time than RANDOM. When you have a large dataset, you may need to take the time and prediction accuracy into your consideration.
+* Based on RMSE number, UBCF model is the model gives better accuracy. We can use this model to recommend books, movies,shows or some other items for online shopping. However, this model takes longer time than RANDOM. When you have a large dataset, you may need to take the time and prediction accuracy into your consideration.
 
 * As one user can rate many books or one book can have many user to rate it, therefore, when we do the dataset split based on user_id, it could bring bias into the train and test dataset.
 
-* We would suggest to get more information about user profiles such as age, education background, culture background etc. to do more deep analying as there are many factors in people's reading taste.
+* ShinyApps.io only offers 1GB for an instance, we are unable to ask user to rate more than 50 books at a time as it crashes sometimes. To avoid the crash on the app, we only give 20 books for a user to rate at a time. Ideally,user rates more books and the recommendation model perfermances better accuracy. We would suggest to have a big instance for the app and load more books for user to rate.
 
-* User rates more books and the recommendation model perfermances better accuracy.
 
-* Project code on [github](https://github.com/aiaihu/book-recommendation)
+* We would suggest future analysis to combine with tags dataset. This will get genre information.
+
+* We would also suggest to get more information about user profiles such as age, education background, culture background etc. to do more deep analying as there are many factors in people's reading taste.
+
+
+* Project code and dataset are on [github](https://github.com/aiaihu/book-recommendation)
 
 
 
